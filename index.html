@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Taxicap Geometrisi</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.8.0/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-around;
+            margin: 10px;
+        }
+
+        .action-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .clicked-button {
+            background-color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="map" style="width:100%; height: 80vh"></div>
+    <div class="button-container">
+        <button id="taxicapButton" class="action-button" onclick="taxicapCalculation()">Taxicap Hesaplama</button>
+        <button id="birdFlyButton" class="action-button" onclick="birdFlyDistanceCalculation()">Kuş Uçuşu Hesaplama</button>
+        <button id="resetButton" class="action-button" onclick="resetRoute()">Rota Sıfırla</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.8.0/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+    <script>
+        var map = L.map('map').setView([36.90212600586271, 30.65914674726621], 20);
+        mapLink = "<a href='http://openstreetmap.org'>OpenStreetMap</a>";
+        L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', { attribution: 'Leaflet &copy; ' + mapLink + ', contribution', maxZoom: 18 }).addTo(map);
+
+        var taxiIcon = L.icon({
+            iconUrl: 'car.png',
+            iconSize: [50, 50]
+        })
+
+        var marker = L.marker([36.90212600586271, 30.65914674726621], { icon: taxiIcon }).addTo(map);
+
+        var routingControl;
+        var birdLine;
+
+        function taxicapCalculation() {
+            map.off('click', onMapClick); // Önceki event listener'ı kaldır
+
+            // Buton rengini değiştir
+            document.getElementById("taxicapButton").classList.add("clicked-button");
+
+            // Yeni event listener'ı ekle
+            map.on('click', function (e) {
+                console.log(e);
+                var newMarker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
+
+                // Eğer bir rota kontrolü varsa, önceki rotayı kaldır
+                if (routingControl) {
+                    map.removeControl(routingControl);
+                }
+
+                routingControl = L.Routing.control({
+                    waypoints: [
+                        L.latLng(36.90212600586271, 30.65914674726621),
+                        L.latLng(e.latlng.lat, e.latlng.lng)
+
+                    ]
+
+                }).on('routesfound', function (e) {
+                    var routes = e.routes;
+                    console.log(routes);
+
+                    e.routes[0].coordinates.forEach(function (coord, index) {
+                        setTimeout(function () {
+                            marker.setLatLng([coord.lat, coord.lng]);
+                        }, 100 * index)
+                    })
+
+                }).addTo(map);
+            });
+        }
+
+        function birdFlyDistanceCalculation() {
+            map.off('click', onMapClick); // Önceki event listener'ı kaldır
+
+            // Buton rengini değiştir
+            document.getElementById("birdFlyButton").classList.add("clicked-button");
+
+            // Yeni event listener'ı ekle
+            map.on('click', onMapClick);
+        }
+
+        function onMapClick(e) {
+            console.log(e);
+            var newMarker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map);
+
+            // Eğer bir kuş uçuşu çizgisi varsa, önceki çizgiyi kaldır
+            if (birdLine) {
+                map.removeLayer(birdLine);
+            }
+
+            // İki nokta arasında düz çizgi oluştur
+            birdLine = L.polyline([marker.getLatLng(), newMarker.getLatLng()], { color: 'red' }).addTo(map);
+
+            // İki nokta arasındaki doğrudan mesafeyi hesapla
+            var distance = marker.getLatLng().distanceTo(newMarker.getLatLng());
+            alert('Kuş Uçuşu Mesafe: ' + (distance / 1000).toFixed(2) + ' km');
+        }
+
+        function resetRoute() {
+            // Eğer bir rota kontrolü varsa, önceki rotayı kaldır
+            if (routingControl) {
+                map.removeControl(routingControl);
+            }
+
+            // Eğer bir kuş uçuşu çizgisi varsa, önceki çizgiyi kaldır
+            if (birdLine) {
+                map.removeLayer(birdLine);
+            }
+
+            // Buton renklerini sıfırla
+            resetButtonColors();
+        }
+
+        function resetButtonColors() {
+            document.getElementById("taxicapButton").classList.remove("clicked-button");
+            document.getElementById("birdFlyButton").classList.remove("clicked-button");
+        }
+    </script>
+</body>
+
+</html>
